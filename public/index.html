@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>IoT Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #0b1220;
+            color: #e5e7eb;
+        }
+
+        h1 {
+            text-align: center;
+            padding: 20px;
+            font-weight: 600;
+        }
+
+        #devices {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+            justify-content: center;
+        }
+
+        .card {
+            background: #111827;
+            border-radius: 16px;
+            padding: 16px;
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid #1f2937;
+        }
+
+        .online {
+            color: #22c55e;
+        }
+
+        .offline {
+            color: #ef4444;
+        }
+
+        canvas {
+            margin-top: 10px;
+        }
+
+        button {
+            margin: 5px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>IoT Device Dashboard</h1>
+
+    <div style="text-align:center;">
+        <button onclick="setRange('10latest')">Last 10 Values</button>
+        <button onclick="setRange('10min')">Last 10 Min</button>
+        <button onclick="setRange('1h')">Last 1 Hour</button>
+        <button onclick="setRange('24h')">Last 24 Hours</button>
+    </div>
+
+    <div id="devices"></div>
+
+    <script>
+        let currentRange = "10latest";
+        let realtimeMode = true;
+
+        // ✅ track DB preload
+        const historyLoaded = {};
+
+        const charts = {};
+        const deviceList = new Set();
+
+        // ------------------ TIME ------------------
+        function formatTime(ts) {
+            return new Date(ts).toLocaleTimeString();
+        }
+
+        // ------------------ CHART ------------------
+        function createChart(id) {
+            const ctx = document.getElementById(id).getContext("2d");
+
+            return new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: "Temp",
+                            data: [],
+                            borderColor: "#38bdf8",
+                            tension: 0.3,
+                            yAxisID: "y"
+                        },
+                        {
+                            label: "Humidity",
+                            data: [],
+                            borderColor: "#f59e0b",
+                            tension: 0.3,
+                            yAxisID: "y"
+                        },
+                        {
+                            label: "Pressure",
+                            data: [],
+                            borderColor: "#ffffff",
+                            tension: 0.3,
+                            yAxisID: "y1"
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            type: "linear",
+                            position: "left",
+                            title: {
+                                display: true,
+                                text: "Temp / Humidity"
+                            }
+                        },
+                        y1: {
+                            type: "linear",
+                            position: "right",
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            title: {
+                                display: true,
+                                text: "Pressure"
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ------------------ LOAD HISTORY ------------------
+        async function loadHistory(device, range) {
+            try {
+                const res = await fetch(`/history/${device}?range=${range}&t=${Date.now()}`);
+                const data = await res.json();
+
+                if (!charts[device]) return;
+
+                const chart = charts[device];
+
+                chart.data.labels = data.map(d => formatTime(d.timestamp));
+                chart.data.datasets[0].data = data.map(d => d.temperature);
+                chart.data.datasets[1].data = data.map(d => d.humidity);
+                chart.data.datasets[2].data = data.map(d => d.pressure);
+
+                chart.update();
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // ------------------ BUTTON ------------------
+        function setRange(range) {
+            currentRange = range;
+            realtimeMode = (range === "10latest");
+
+            deviceList.forEach(device => {
+                charts[device].destroy();
+                charts[device] = createChart(device + "-chart");
+
+                if (range === "10latest") {
+                    loadHistory(device, "10latest"); // ✅ preload DB
+                    historyLoaded[device] = true;
+                } else {
+                    loadHistory(device, range);
+                }
+            });
+        }
+
+        // ------------------ CREATE CARD ------------------
+        function createCard(name) {
+            const container = document.getElementById("devices");
+
+            const card = document.createElement("div");
+            card.className = "card";
+            card.id = name;
+
+            card.innerHTML = `
+    <h3>${name}</h3>
+    <div id="${name}-status">🟡 Waiting...</div>
+    <div id="${name}-last"></div>
+
+    <div>
+      <div id="${name}-temp">Temp: --</div>
+      <div id="${name}-hum">Humidity: --</div>
+      <div id="${name}-pre">Pressure: --</div>
+    </div>
+
+    <canvas id="${name}-chart"></canvas>
+  `;
+
+            container.appendChild(card);
+
+            charts[name] = createChart(name + "-chart");
+            deviceList.add(name);
+
+            // ✅ preload DB once in realtime mode
+            if (realtimeMode && !historyLoaded[name]) {
+                loadHistory(name, "10latest");
+                historyLoaded[name] = true;
+            }
+        }
+
+        // ------------------ FETCH LIVE DATA ------------------
+        async function fetchData() {
+            try {
+                const res = await fetch("/current");
+                const devices = await res.json();
+
+                if (!devices.length) return;
+
+                devices.forEach(d => {
+                    let card = document.getElementById(d.device);
+
+                    if (!card) {
+                        createCard(d.device);
+                    }
+
+                    // update metrics
+                    document.getElementById(d.device + "-temp").innerText = "Temp: " + d.temperature;
+                    document.getElementById(d.device + "-hum").innerText = "Humidity: " + d.humidity;
+                    document.getElementById(d.device + "-pre").innerText = "Pressure: " + d.pressure;
+
+                    document.getElementById(d.device + "-last").innerText =
+                        "Last update: " + formatTime(d.timestamp);
+
+                    const isOnline = (Date.now() - new Date(d.timestamp)) < 10000;
+
+                    document.getElementById(d.device + "-status").innerHTML =
+                        isOnline
+                            ? `<span class="online">🟢 Online</span>`
+                            : `<span class="offline">🔴 Offline</span>`;
+
+                    // ------------------ REALTIME GRAPH ------------------
+                    if (realtimeMode && charts[d.device]) {
+                        const chart = charts[d.device];
+                        const time = formatTime(d.timestamp);
+
+                        const lastLabel = chart.data.labels.at(-1);
+
+                        if (lastLabel !== time) {
+                            chart.data.labels.push(time);
+
+                            chart.data.datasets[0].data.push(d.temperature);
+                            chart.data.datasets[1].data.push(d.humidity);
+                            chart.data.datasets[2].data.push(d.pressure);
+
+                            // keep only last 10
+                            if (chart.data.labels.length > 10) {
+                                chart.data.labels.shift();
+                                chart.data.datasets.forEach(ds => ds.data.shift());
+                            }
+
+                            chart.update();
+                        }
+                    }
+
+                });
+
+            } catch (err) {
+                console.error("Fetch error:", err);
+            }
+        }
+
+        // ------------------ INIT ------------------
+        fetchData();
+        setInterval(fetchData, 3000);
+
+    </script>
+
+</body>
+
+</html>
