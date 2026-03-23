@@ -33,7 +33,7 @@ router.get("/:device", async (req, res) => {
     if (range === "10latest") {
         data = await query.limit(10);
     } else {
-        data = await query; // ❌ NO LIMIT for time ranges
+        data = await query;
     }
 
     res.json(data.reverse());
