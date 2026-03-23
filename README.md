@@ -100,6 +100,7 @@ https://your-app.onrender.com/update
 <p align="center">
   <img src="Resources/iot-dashboard-4sos.onrender.com.png" width="500"/>
 </p>
+* Website Link: Even though website currently would show offline. <a href="https://iot-dashboard-4sos.onrender.com/" target="_blank">Open Website</a>
 ---
 
 ## 📡 ESP8266 Code (HTTPS)
