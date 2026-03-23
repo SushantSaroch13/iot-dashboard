@@ -96,7 +96,10 @@ http://localhost:3000
 ```
 https://your-app.onrender.com/update
 ```
-
+* Website Screenshot:
+<p align="center">
+  <img src="Resources/iot-dashboard-4sos.onrender.com.png" width="500"/>
+</p>
 ---
 
 ## 📡 ESP8266 Code (HTTPS)
