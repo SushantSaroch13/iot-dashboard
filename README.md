@@ -96,12 +96,10 @@ http://localhost:3000
 ```
 https://your-app.onrender.com/update
 ```
-* Website Screenshot:
+* Website Screenshot: <a href="https://iot-dashboard-4sos.onrender.com/" target="_blank">Open Website</a>
 <p align="center">
   <img src="Resources/iot-dashboard-4sos.onrender.com.png" width="500"/>
 </p>
-* Website Link: Even though website currently would show offline. <a href="https://iot-dashboard-4sos.onrender.com/" target="_blank">Open Website</a>
----
 
 ## 📡 ESP8266 Code (HTTPS)
 
