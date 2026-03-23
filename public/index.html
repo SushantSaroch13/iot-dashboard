@@ -1,92 +1,504 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>IoT Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
+        :root {
+            --bg: #07111f;
+            --bg-accent: #0c1729;
+            --panel: rgba(10, 19, 35, 0.78);
+            --panel-strong: rgba(15, 27, 49, 0.92);
+            --border: rgba(148, 163, 184, 0.14);
+            --text: #e5eefc;
+            --muted: #9aa9c2;
+            --primary: #38bdf8;
+            --primary-soft: rgba(56, 189, 248, 0.16);
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #fbbf24;
+            --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+            --radius: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background: #0b1220;
-            color: #e5e7eb;
+            min-height: 100vh;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 28%),
+                radial-gradient(circle at top right, rgba(99, 102, 241, 0.14), transparent 24%),
+                linear-gradient(180deg, #040b16 0%, #081120 48%, #0a1424 100%);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+            background-size: 32px 32px;
+            mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.45), transparent);
+        }
+
+        .page {
+            width: min(1280px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0 48px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 32px;
+            margin-bottom: 28px;
+            border: 1px solid var(--border);
+            border-radius: 32px;
+            background:
+                linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(99, 102, 241, 0.08)),
+                rgba(7, 17, 31, 0.75);
+            backdrop-filter: blur(16px);
+            box-shadow: var(--shadow);
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            right: -80px;
+            top: -80px;
+            width: 260px;
+            height: 260px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.24), transparent 68%);
+            border-radius: 50%;
+        }
+
+        .hero__content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            gap: 20px;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            color: #b9c7db;
+            font-size: 0.82rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
 
         h1 {
-            text-align: center;
-            padding: 20px;
+            margin: 16px 0 10px;
+            font-size: clamp(2rem, 4vw, 3.75rem);
+            line-height: 1.02;
+            letter-spacing: -0.04em;
+        }
+
+        .hero__description {
+            margin: 0;
+            max-width: 680px;
+            color: var(--muted);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        .hero__stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 26px;
+        }
+
+        .stat {
+            min-width: 140px;
+            padding: 16px 18px;
+            border-radius: 20px;
+            background: rgba(15, 23, 42, 0.58);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+        }
+
+        .stat__label {
+            display: block;
+            color: var(--muted);
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .stat__value {
+            font-size: 1.65rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            padding: 18px 20px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            background: var(--panel);
+            backdrop-filter: blur(14px);
+            box-shadow: var(--shadow);
+        }
+
+        .toolbar__title {
+            margin: 0;
+            font-size: 1rem;
+            color: var(--muted);
+        }
+
+        .toolbar__buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            appearance: none;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(15, 23, 42, 0.9);
+            color: #dbe7f8;
+            padding: 11px 16px;
+            min-height: 44px;
+            border-radius: 14px;
+            font-size: 0.95rem;
             font-weight: 600;
+            cursor: pointer;
+            transition: 0.22s ease;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+            border-color: rgba(56, 189, 248, 0.36);
+            background: rgba(18, 31, 54, 1);
+        }
+
+        .button.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.26), rgba(99, 102, 241, 0.2));
+            border-color: rgba(56, 189, 248, 0.4);
+            color: white;
+            box-shadow: 0 12px 24px rgba(14, 165, 233, 0.16);
         }
 
         #devices {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            padding: 20px;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 22px;
         }
 
         .card {
-            background: #111827;
-            border-radius: 16px;
-            padding: 16px;
+            position: relative;
+            overflow: hidden;
+            padding: 22px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background:
+                linear-gradient(180deg, rgba(16, 29, 53, 0.9), rgba(8, 17, 31, 0.94));
+            box-shadow: var(--shadow);
+            transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto auto 0;
             width: 100%;
-            max-width: 400px;
-            border: 1px solid #1f2937;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), #8b5cf6, #22c55e);
+            opacity: 0.9;
         }
 
-        .online {
-            color: #22c55e;
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(56, 189, 248, 0.28);
+            box-shadow: 0 24px 50px rgba(2, 8, 23, 0.5);
         }
 
-        .offline {
-            color: #ef4444;
+        .card__top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .card__title {
+            margin: 0 0 6px;
+            font-size: 1.2rem;
+            letter-spacing: -0.02em;
+        }
+
+        .card__subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: fit-content;
+            padding: 9px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.04);
+        }
+
+        .status-badge.online .status-dot {
+            background: var(--success);
+            box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.16);
+        }
+
+        .status-badge.offline .status-dot {
+            background: var(--danger);
+            box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.16);
+        }
+
+        .status-badge.waiting .status-dot {
+            background: var(--warning);
+            box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.16);
+        }
+
+        .last-update {
+            display: block;
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin: 20px 0 18px;
+        }
+
+        .metric {
+            padding: 14px 12px;
+            border-radius: 18px;
+            background: rgba(15, 23, 42, 0.64);
+            border: 1px solid rgba(148, 163, 184, 0.08);
+        }
+
+        .metric__label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        .metric__value {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .chart-wrap {
+            padding: 14px;
+            border-radius: 20px;
+            background: rgba(4, 10, 22, 0.55);
+            border: 1px solid rgba(148, 163, 184, 0.08);
         }
 
         canvas {
-            margin-top: 10px;
+            width: 100% !important;
+            height: 260px !important;
+            margin-top: 4px;
         }
 
-        button {
-            margin: 5px;
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
+        .empty-state {
+            grid-column: 1 / -1;
+            padding: 40px 24px;
+            text-align: center;
+            border-radius: 28px;
+            border: 1px dashed rgba(148, 163, 184, 0.18);
+            color: var(--muted);
+            background: rgba(8, 17, 31, 0.65);
+        }
+
+        @media (max-width: 768px) {
+            .page {
+                width: min(100% - 20px, 1280px);
+                padding-top: 18px;
+            }
+
+            .hero,
+            .toolbar,
+            .card {
+                border-radius: 22px;
+            }
+
+            .hero {
+                padding: 24px 20px;
+            }
+
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .toolbar {
+                align-items: stretch;
+            }
+
+            .toolbar__buttons {
+                width: 100%;
+            }
+
+            .toolbar__buttons .button {
+                flex: 1 1 calc(50% - 10px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .toolbar__buttons .button {
+                flex: 1 1 100%;
+            }
+
+            #devices {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 
 <body>
+    <main class="page">
+        <section class="hero">
+            <div class="hero__content">
+                <div>
+                    <span class="eyebrow">Live Sensor Monitoring</span>
+                    <h1>Modern control view for your IoT devices</h1>
+                    <p class="hero__description">
+                        Monitor sensor activity, compare environmental values, and inspect recent history from a clean,
+                        glassy dashboard designed for live device tracking.
+                    </p>
 
-    <h1>IoT Device Dashboard</h1>
+                    <div class="hero__stats">
+                        <div class="stat">
+                            <span class="stat__label">Connected Devices</span>
+                            <span class="stat__value" id="device-count">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat__label">Online Now</span>
+                            <span class="stat__value" id="online-count">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat__label">View Mode</span>
+                            <span class="stat__value" id="range-label">Latest</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    <div style="text-align:center;">
-        <button onclick="setRange('10latest')">Last 10 Values</button>
-        <button onclick="setRange('10min')">Last 10 Min</button>
-        <button onclick="setRange('1h')">Last 1 Hour</button>
-        <button onclick="setRange('24h')">Last 24 Hours</button>
-    </div>
+        <section class="toolbar">
+            <p class="toolbar__title">Choose the time window for each device chart</p>
+            <div class="toolbar__buttons">
+                <button class="button active" data-range="10latest" onclick="setRange('10latest')">Last 10 Values</button>
+                <button class="button" data-range="10min" onclick="setRange('10min')">Last 10 Min</button>
+                <button class="button" data-range="1h" onclick="setRange('1h')">Last 1 Hour</button>
+                <button class="button" data-range="24h" onclick="setRange('24h')">Last 24 Hours</button>
+            </div>
+        </section>
 
-    <div id="devices"></div>
+        <section id="devices">
+            <div class="empty-state" id="empty-state">Waiting for device data...</div>
+        </section>
+    </main>
 
     <script>
         let currentRange = "10latest";
         let realtimeMode = true;
 
-        // ✅ track DB preload
         const historyLoaded = {};
-
         const charts = {};
         const deviceList = new Set();
 
-        // ------------------ TIME ------------------
         function formatTime(ts) {
             return new Date(ts).toLocaleTimeString();
         }
 
-        // ------------------ CHART ------------------
+        function formatValue(value, unit = "") {
+            if (value === null || value === undefined || value === "") return "--";
+            const num = Number(value);
+            if (Number.isNaN(num)) return `${value}${unit}`;
+            return `${num.toFixed(1)}${unit}`;
+        }
+
+        function updateToolbarState() {
+            document.querySelectorAll(".button[data-range]").forEach(button => {
+                button.classList.toggle("active", button.dataset.range === currentRange);
+            });
+
+            const labels = {
+                "10latest": "Latest",
+                "10min": "10 Min",
+                "1h": "1 Hour",
+                "24h": "24 Hours"
+            };
+
+            document.getElementById("range-label").innerText = labels[currentRange] || currentRange;
+        }
+
+        function updateSummaryStats() {
+            const devices = Array.from(deviceList);
+            document.getElementById("device-count").innerText = devices.length;
+
+            let onlineCount = 0;
+
+            devices.forEach(device => {
+                const status = document.getElementById(device + "-status");
+                if (status && status.classList.contains("online")) {
+                    onlineCount++;
+                }
+            });
+
+            document.getElementById("online-count").innerText = onlineCount;
+        }
+
         function createChart(id) {
             const ctx = document.getElementById(id).getContext("2d");
 
@@ -99,49 +511,89 @@
                             label: "Temp",
                             data: [],
                             borderColor: "#38bdf8",
-                            tension: 0.3,
+                            backgroundColor: "rgba(56, 189, 248, 0.12)",
+                            tension: 0.35,
+                            borderWidth: 2,
+                            pointRadius: 2,
+                            pointHoverRadius: 4,
                             yAxisID: "y"
                         },
                         {
                             label: "Humidity",
                             data: [],
                             borderColor: "#f59e0b",
-                            tension: 0.3,
+                            backgroundColor: "rgba(245, 158, 11, 0.12)",
+                            tension: 0.35,
+                            borderWidth: 2,
+                            pointRadius: 2,
+                            pointHoverRadius: 4,
                             yAxisID: "y"
                         },
                         {
                             label: "Pressure",
                             data: [],
-                            borderColor: "#ffffff",
-                            tension: 0.3,
+                            borderColor: "#a78bfa",
+                            backgroundColor: "rgba(167, 139, 250, 0.12)",
+                            tension: 0.35,
+                            borderWidth: 2,
+                            pointRadius: 2,
+                            pointHoverRadius: 4,
                             yAxisID: "y1"
                         }
                     ]
                 },
                 options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: "#c7d2fe",
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                boxHeight: 8,
+                                padding: 16
+                            }
+                        }
+                    },
                     scales: {
                         y: {
                             type: "linear",
                             position: "left",
+                            ticks: {
+                                color: "#8ea0bb"
+                            },
+                            grid: {
+                                color: "rgba(148, 163, 184, 0.08)"
+                            },
                             title: {
                                 display: true,
+                                color: "#a5b4fc",
                                 text: "Temp / Humidity"
                             }
                         },
                         y1: {
                             type: "linear",
                             position: "right",
+                            ticks: {
+                                color: "#8ea0bb"
+                            },
                             grid: {
                                 drawOnChartArea: false
                             },
                             title: {
                                 display: true,
+                                color: "#c4b5fd",
                                 text: "Pressure"
                             }
                         },
                         x: {
                             ticks: {
-                                maxTicksLimit: 10
+                                color: "#8ea0bb",
+                                maxTicksLimit: 8
+                            },
+                            grid: {
+                                color: "rgba(148, 163, 184, 0.06)"
                             }
                         }
                     }
@@ -149,7 +601,6 @@
             });
         }
 
-        // ------------------ LOAD HISTORY ------------------
         async function loadHistory(device, range) {
             try {
                 const res = await fetch(`/history/${device}?range=${range}&t=${Date.now()}`);
@@ -165,23 +616,22 @@
                 chart.data.datasets[2].data = data.map(d => d.pressure);
 
                 chart.update();
-
             } catch (err) {
                 console.error(err);
             }
         }
 
-        // ------------------ BUTTON ------------------
         function setRange(range) {
             currentRange = range;
             realtimeMode = (range === "10latest");
+            updateToolbarState();
 
             deviceList.forEach(device => {
                 charts[device].destroy();
                 charts[device] = createChart(device + "-chart");
 
                 if (range === "10latest") {
-                    loadHistory(device, "10latest"); // ✅ preload DB
+                    loadHistory(device, "10latest");
                     historyLoaded[device] = true;
                 } else {
                     loadHistory(device, range);
@@ -189,47 +639,73 @@
             });
         }
 
-        // ------------------ CREATE CARD ------------------
         function createCard(name) {
             const container = document.getElementById("devices");
+            const emptyState = document.getElementById("empty-state");
 
-            const card = document.createElement("div");
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const card = document.createElement("article");
             card.className = "card";
             card.id = name;
 
             card.innerHTML = `
-    <h3>${name}</h3>
-    <div id="${name}-status">🟡 Waiting...</div>
-    <div id="${name}-last"></div>
+                <div class="card__top">
+                    <div>
+                        <h3 class="card__title">${name}</h3>
+                        <p class="card__subtitle">Environmental sensor node</p>
+                    </div>
+                    <div class="status-badge waiting" id="${name}-status">
+                        <span class="status-dot"></span>
+                        <span>Waiting...</span>
+                    </div>
+                </div>
 
-    <div>
-      <div id="${name}-temp">Temp: --</div>
-      <div id="${name}-hum">Humidity: --</div>
-      <div id="${name}-pre">Pressure: --</div>
-    </div>
+                <span class="last-update" id="${name}-last">Last update: --</span>
 
-    <canvas id="${name}-chart"></canvas>
-  `;
+                <div class="metrics">
+                    <div class="metric">
+                        <span class="metric__label">Temperature</span>
+                        <span class="metric__value" id="${name}-temp">--</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric__label">Humidity</span>
+                        <span class="metric__value" id="${name}-hum">--</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric__label">Pressure</span>
+                        <span class="metric__value" id="${name}-pre">--</span>
+                    </div>
+                </div>
+
+                <div class="chart-wrap">
+                    <canvas id="${name}-chart"></canvas>
+                </div>
+            `;
 
             container.appendChild(card);
 
             charts[name] = createChart(name + "-chart");
             deviceList.add(name);
+            updateSummaryStats();
 
-            // ✅ preload DB once in realtime mode
             if (realtimeMode && !historyLoaded[name]) {
                 loadHistory(name, "10latest");
                 historyLoaded[name] = true;
             }
         }
 
-        // ------------------ FETCH LIVE DATA ------------------
         async function fetchData() {
             try {
                 const res = await fetch("/current");
                 const devices = await res.json();
 
-                if (!devices.length) return;
+                if (!devices.length) {
+                    updateSummaryStats();
+                    return;
+                }
 
                 devices.forEach(d => {
                     let card = document.getElementById(d.device);
@@ -238,36 +714,33 @@
                         createCard(d.device);
                     }
 
-                    // update metrics
-                    document.getElementById(d.device + "-temp").innerText = "Temp: " + d.temperature;
-                    document.getElementById(d.device + "-hum").innerText = "Humidity: " + d.humidity;
-                    document.getElementById(d.device + "-pre").innerText = "Pressure: " + d.pressure;
+                    document.getElementById(d.device + "-temp").innerText = formatValue(d.temperature, "°C");
+                    document.getElementById(d.device + "-hum").innerText = formatValue(d.humidity, "%");
+                    document.getElementById(d.device + "-pre").innerText = formatValue(d.pressure, " hPa");
 
                     document.getElementById(d.device + "-last").innerText =
                         "Last update: " + formatTime(d.timestamp);
 
                     const isOnline = (Date.now() - new Date(d.timestamp)) < 10000;
+                    const status = document.getElementById(d.device + "-status");
 
-                    document.getElementById(d.device + "-status").innerHTML =
-                        isOnline
-                            ? `<span class="online">🟢 Online</span>`
-                            : `<span class="offline">🔴 Offline</span>`;
+                    status.className = `status-badge ${isOnline ? "online" : "offline"}`;
+                    status.innerHTML = `
+                        <span class="status-dot"></span>
+                        <span>${isOnline ? "Online" : "Offline"}</span>
+                    `;
 
-                    // ------------------ REALTIME GRAPH ------------------
                     if (realtimeMode && charts[d.device]) {
                         const chart = charts[d.device];
                         const time = formatTime(d.timestamp);
-
                         const lastLabel = chart.data.labels.at(-1);
 
                         if (lastLabel !== time) {
                             chart.data.labels.push(time);
-
                             chart.data.datasets[0].data.push(d.temperature);
                             chart.data.datasets[1].data.push(d.humidity);
                             chart.data.datasets[2].data.push(d.pressure);
 
-                            // keep only last 10
                             if (chart.data.labels.length > 10) {
                                 chart.data.labels.shift();
                                 chart.data.datasets.forEach(ds => ds.data.shift());
@@ -276,20 +749,18 @@
                             chart.update();
                         }
                     }
-
                 });
 
+                updateSummaryStats();
             } catch (err) {
                 console.error("Fetch error:", err);
             }
         }
 
-        // ------------------ INIT ------------------
+        updateToolbarState();
         fetchData();
         setInterval(fetchData, 3000);
-
     </script>
-
 </body>
 
 </html>
